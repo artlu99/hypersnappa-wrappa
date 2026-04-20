@@ -91,6 +91,7 @@ export const createWrappa = (deps: WrappaDeps) => {
 			if (!cast) {
 				throw new Error(`Cast not found: ${hashOrUrl}`);
 			}
+			console.log(`Liking cast ${cast}`);
 			await deps.likeCast({
 				fid: cast.cast.author.fid,
 				hash: `0x${cast.cast.hash.replace("0x", "")}`,

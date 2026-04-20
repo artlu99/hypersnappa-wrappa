@@ -125,15 +125,15 @@ export const lookupCastByHashOrWarpcastUrl = async (
 			? "url"
 			: "hash";
 
-	if (inputType === "url") {
-		return await urlToCastHash(hashOrUrl, shimLookback);
-	}
+	const fullHash = inputType === "url" ? 
+		 await urlToCastHash(hashOrUrl, shimLookback) : hashOrUrl;
+	invariant(fullHash, `Cast not found: ${hashOrUrl}`);
 
 	try {
 		const res = await cachedFetcherGet<CastResponse>(
 			`/v2/farcaster/cast?identifier=${encodeURIComponent(
-				hashOrUrl,
-			)}&type=${inputType}`,
+				fullHash,
+			)}&type=${inputType === "url" ? "hash" : "hash"}`,
 			LONG_TTL,
 		);
 		return res;

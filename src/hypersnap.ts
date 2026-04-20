@@ -241,7 +241,7 @@ export async function getCasts(
 			if (!data) return null;
 			const { castAddBody } = data;
 			if (!castAddBody) return null;
-			return { text: castAddBody.text ?? null, hash: r.hash };
+			return { text: castAddBody.text ?? null, hash: r.hash, timestamp: r.data?.timestamp ?? null };
 		}),
 	);
 }

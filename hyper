@@ -1,0 +1,109 @@
+#!/usr/bin/env bun
+
+import { Command } from "commander";
+import { sort } from "radash";
+import invariant from "tiny-invariant";
+import { getTimestamp, getTimestampFromFarcasterTimestamp } from "./src/hubs";
+import {
+	deleteCast,
+	getCasts,
+	getFidFromUsername,
+	getLikesByFid,
+} from "./src/hypersnap";
+import { getUserInfo } from "./src/neynar";
+import { urlToCastHash } from "./src/shim";
+import { firstNUnique } from "./src/utils";
+import { wrappa } from "./src/wrappa";
+
+const program = new Command();
+
+program.name("hyper").description("Hypersnap CLI").version("0.1.0");
+
+program
+	.command("ls")
+	.description("List most recent casts+replies")
+	.argument("<user>", "user to list casts for")
+	.action(async (user) => {
+		const fid = await getFidFromUsername(user);
+		invariant(fid, `User not found: ${user}`);
+
+		const casts = await getCasts(fid, true, 10);
+		console.log(
+			casts
+				.map(
+					(c) =>
+						`${getTimestamp(getTimestampFromFarcasterTimestamp(c.timestamp ?? 0))} ${c.text.slice(0, 70)} [${c.hash.slice(0, 10)}]`,
+				)
+				.join("\n"),
+		);
+	});
+
+program
+	.command("url")
+	.description("Resolve a cast URL to a full hash")
+	.argument("<url>", "URL to resolve")
+	.action(async (url) => {
+		const hash = await urlToCastHash(url);
+		console.log(hash);
+	});
+
+program
+	.command("like")
+	.description("Like a cast")
+	.argument("<url>", "URL to like")
+	.action(async (url) => {
+		const hash = await urlToCastHash(url);
+		invariant(hash, `Cast not found: ${url}`);
+		await wrappa({ action: "like", hashOrUrl: hash });
+	});
+
+program
+	.command("cast")
+	.description("Cast a message")
+	.argument("<message>", "Message to cast")
+	.option("-c, --channel <channel>", "Channel to cast to", "dev")
+	.action(async (message, options) => {
+		await wrappa({ action: "cast", text: message, channelId: options.channel });
+	});
+
+program
+	.command("reply")
+	.description("Reply to a cast")
+	.argument("<url>", "URL to reply to")
+	.argument("<message>", "Message to reply with")
+	.option("-l, --like", "also like the cast")
+	.action(async (url, message, options) => {
+		const action = options.like ? "like+reply" : "reply";
+		await wrappa({ action, hashOrUrl: url, text: message });
+	});
+
+program
+	.command("delete")
+	.description("Delete a cast")
+	.argument("<url>", "URL to delete")
+	.action(async (url) => {
+		const hash = await urlToCastHash(url);
+		invariant(hash, `Cast not found: ${url}`);
+		await deleteCast(`0x${hash.replace("0x", "")}`);
+	});
+
+program
+	.command("frens")
+	.description("List frens by most recent likes")
+	.option("-n, --limit <limit>", "Limit the number of frens to list", "5")
+	.action(async (options) => {
+		const limit = Number(options.limit ?? 5);
+		const frens = await getLikesByFid(Number(process.env.FID));
+		await Promise.all(
+			firstNUnique(sort(frens ?? [], (f) => f.timestamp ?? 0, true), (f) => f.targetFid, limit).map((f) => f.targetFid)
+				.slice(0, limit)
+				.map(async (f) => {
+					const user = await getUserInfo(f ?? 0);
+					console.log(
+						`${user?.username}`,
+					);
+				}),
+		);
+	});
+
+program.parse();
