@@ -9,6 +9,7 @@ import type {
 } from "@neynar/nodejs-sdk/build/api";
 import { fetcher } from "itty-fetcher";
 import { open, type RootDatabase } from "lmdb";
+import invariant from "tiny-invariant";
 import { NEYNAR_API_KEY } from "./env";
 import { urlToCastHash } from "./shim";
 
@@ -38,9 +39,8 @@ type KnownNeynarApis = "neynar" | "quilibrium";
 
 const getNeynarApi = (shortname: KnownNeynarApis): NeynarApi => {
 	const api = knownNeynarApis.find((api) => api.shortname === shortname);
-	if (!api) {
-		throw new Error(`Neynar API ${shortname} not found`);
-	}
+	invariant(api, `Neynar API ${shortname} not found`);
+
 	return api;
 };
 

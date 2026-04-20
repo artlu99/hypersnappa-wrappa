@@ -1,4 +1,5 @@
 import { FARCASTER_EPOCH } from "@farcaster/core";
+import invariant from "tiny-invariant";
 
 export const getTimestamp = (timestamp: number): string => {
 	return new Date(timestamp).toISOString();
@@ -51,8 +52,7 @@ type KnownHubs = "quilibrium" | "neynar" | "borodutch";
 
 export const getHub = (shortname: KnownHubs): Hub => {
 	const hub = knownHubs.find((hub) => hub.shortname === shortname);
-	if (!hub) {
-		throw new Error(`Hub ${shortname} not found`);
-	}
+	invariant(hub, `Hub ${shortname} not found`);
+
 	return hub;
 };
