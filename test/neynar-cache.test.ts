@@ -16,7 +16,7 @@ describe("createCachedFetcherGet", () => {
 			return { n: calls } as T;
 		};
 
-		const cachedGet = createCachedFetcherGet({
+		const cachedGet = createCachedFetcherGet(undefined, {
 			cachePath,
 			now: () => nowMs,
 			fetchJson,

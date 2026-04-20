@@ -61,7 +61,7 @@ const SHORT_TTL = 24 * 60 * 60; // 1 day
 type NeynarCacheEntry = { exp: number; body: unknown };
 
 export function createCachedFetcherGet(
-	neynarProvider: KnownNeynarApis = "neynar",
+	neynarProvider: KnownNeynarApis = DEFAULT_NEYNAR_PROVIDER,
 	options?: {
 		cachePath?: string;
 		now?: () => number;
