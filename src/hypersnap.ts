@@ -2,6 +2,8 @@ import {
 	CastType,
 	type Embed,
 	FarcasterNetwork,
+	HubError,
+	isHubError,
 	Message,
 	makeCastAdd,
 	makeCastRemove,
@@ -10,6 +12,7 @@ import {
 	makeReactionAdd,
 	NobleEd25519Signer,
 	ReactionType,
+	UserNameProof,
 } from "@farcaster/core";
 import { LinkType } from "@neynar/nodejs-sdk/build/hub-api/models";
 import { fetcher } from "itty-fetcher";
@@ -224,9 +227,13 @@ export const getLinks = async (fid: number) => {
 	return sift(links.map((l) => l?.targetFid));
 };
 
-export async function getCasts(fid: number) {
+export async function getCasts(
+	fid: number,
+	reverse: boolean = true,
+	pageSize: number = 3,
+) {
 	const response = await client.get<{ messages: Message[] }>(
-		`/v1/castsByFid?fid=${fid}&reverse=false&pageSize=3`,
+		`/v1/castsByFid?fid=${fid}&reverse=${reverse}&pageSize=${pageSize}`,
 	);
 	return sift(
 		response.messages.map((r) => {
@@ -291,4 +298,14 @@ export async function getLikesByFid(fid: number) {
 			};
 		}),
 	);
+}
+
+export async function getFidFromUsername(username: string) {
+	const response = await client.get<UserNameProof | HubError>(
+		`/v1/userNameProofByName?name=${username}`,
+	);
+	if (!isHubError(response)) {
+		return response.fid;
+	}
+	return null;
 }
