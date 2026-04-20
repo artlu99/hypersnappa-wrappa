@@ -1,3 +1,16 @@
+import { FARCASTER_EPOCH } from "@farcaster/core";
+
+export const getTimestamp = (timestamp: number): string => {
+	return new Date(timestamp).toISOString();
+};
+
+export const getTimestampFromFarcasterTimestamp = (
+	farcasterTimestamp: number,
+): number => {
+	return farcasterTimestamp * 1000 + FARCASTER_EPOCH;
+};
+
+
 interface Hub {
 	shortname: string;
 	url: string;

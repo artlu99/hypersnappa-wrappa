@@ -287,6 +287,7 @@ export async function getLikesByFid(fid: number) {
 				targetFid: reactionBody.targetCastId?.fid ?? null,
 				targetHash: reactionBody.targetCastId?.hash ?? null,
 				hash: r.hash,
+				timestamp: r.data?.timestamp ?? null,
 			};
 		}),
 	);
