@@ -1,0 +1,24 @@
+{
+	"name": "hypersnappa-wrappa",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"start": "bun run scripts/scratch.ts",
+		"check": "bunx tsc --noEmit && bun test"
+	},
+	"dependencies": {
+		"@dotenvx/dotenvx": "^1.61.1",
+		"@farcaster/core": "^0.18.10",
+		"@neynar/nodejs-sdk": "^2.46.0",
+		"itty-fetcher": "^1.0.10",
+		"lmdb": "^3.5.4",
+		"radash": "^12.1.1",
+		"viem": "^2.48.1"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	}
+}
