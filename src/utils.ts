@@ -28,7 +28,7 @@ const charCodeToBase16 = (char: number) => {
 	if (char >= charCodeMap.a && char <= charCodeMap.f)
 		return char - (charCodeMap.a - 10);
 	return undefined;
-}
+};
 
 export const hexToBytes = (hex_: `0x${string}`): Uint8Array => {
 	const hex = hex_;
@@ -49,8 +49,20 @@ export const hexToBytes = (hex_: `0x${string}`): Uint8Array => {
 		bytes[index] = nibbleLeft * 16 + nibbleRight;
 	}
 	return bytes;
-}
+};
 
 export const shortenAddress = (address: string) => {
 	return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
+};
+
+export const readAllStdin = async (): Promise<string> => {
+	// Only read if piped; otherwise this may hang waiting for input.
+	if (process.stdin.isTTY) return "";
+	if (!process.stdin.readable) return "";
+
+	process.stdin.setEncoding("utf8");
+
+	let data = "";
+	for await (const chunk of process.stdin) data += chunk;
+	return data;
+};

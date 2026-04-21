@@ -5,6 +5,7 @@ import {
 	type HubError,
 	isHubError,
 	Message,
+	type MessagesResponse,
 	makeCastAdd,
 	makeCastRemove,
 	makeLinkAdd,
@@ -13,7 +14,6 @@ import {
 	NobleEd25519Signer,
 	ReactionType,
 	type UserNameProof,
-	MessagesResponse,
 } from "@farcaster/core";
 import { LinkType } from "@neynar/nodejs-sdk/build/hub-api/models";
 import { fetcher } from "itty-fetcher";
@@ -99,13 +99,18 @@ export async function publishCast(
 	}
 }
 
-export async function likeCast(targetCast: {
-	fid: number;
-	hash: `0x${string}`;
-}) {
+export async function castReact(
+	targetCast: {
+		fid: number;
+		hash: `0x${string}`;
+	},
+	reactionType: ReactionType = ReactionType.LIKE,
+) {
 	const signer = new NobleEd25519Signer(hexToBytes(PK));
 
-	console.log("Attempting to like cast using @farcaster/core...");
+	console.log(
+		`Attempting to ${reactionType === ReactionType.LIKE ? "like" : "recast"} cast using @farcaster/core...`,
+	);
 	const dataOptions = {
 		fid: FID,
 		network: FarcasterNetwork.MAINNET,
@@ -116,7 +121,7 @@ export async function likeCast(targetCast: {
 				fid: targetCast.fid,
 				hash: hexToBytes(targetCast.hash),
 			},
-			type: ReactionType.LIKE,
+			type: reactionType,
 		},
 		dataOptions,
 		signer,

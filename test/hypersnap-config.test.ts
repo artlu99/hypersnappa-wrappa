@@ -9,4 +9,3 @@ describe("hub post config", () => {
 		);
 	});
 });
-

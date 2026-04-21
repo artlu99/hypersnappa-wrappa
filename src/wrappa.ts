@@ -1,5 +1,5 @@
-import type { Embed } from "@farcaster/core";
-import { likeCast, publishCast } from "./hypersnap";
+import { ReactionType, type Embed } from "@farcaster/core";
+import { castReact, publishCast } from "./hypersnap";
 import {
 	isCastUrl,
 	lookupCastByHashOrWarpcastUrl,
@@ -9,7 +9,7 @@ import { hexToBytes } from "./utils";
 
 export type WrappaInput = {
 	hashOrUrl?: string;
-	action: "cast" | "like" | "reply" | "like+reply";
+	action: "cast" | "like" | "reply" | "recast" | "like+reply" | "like+recast";
 	text?: string;
 	attachments?: string[];
 	channelId?: string;
@@ -18,16 +18,14 @@ export type WrappaInput = {
 };
 
 export type WrappaDeps = {
-	likeCast: typeof likeCast;
+	castReact: typeof castReact;
 	publishCast: typeof publishCast;
 	lookupCastByHashOrWarpcastUrl: typeof lookupCastByHashOrWarpcastUrl;
 	lookupChannelByIdOrParentUrl: typeof lookupChannelByIdOrParentUrl;
 	hashOrUrlToEmbed: (hashOrUrl: string) => Promise<Embed>;
 };
 
-const defaultHashOrUrlToEmbed = async (
-	hashOrUrl: string,
-): Promise<Embed> => {
+const defaultHashOrUrlToEmbed = async (hashOrUrl: string): Promise<Embed> => {
 	if (hashOrUrl.startsWith("0x") || isCastUrl(hashOrUrl)) {
 		const cast = await lookupCastByHashOrWarpcastUrl(hashOrUrl);
 		if (!cast) {
@@ -60,7 +58,9 @@ export const createWrappa = (deps: WrappaDeps) => {
 			mentionsPositions,
 		} = input;
 
-		const cast = hashOrUrl ? await deps.lookupCastByHashOrWarpcastUrl(hashOrUrl) : null;
+		const cast = hashOrUrl
+			? await deps.lookupCastByHashOrWarpcastUrl(hashOrUrl)
+			: null;
 
 		const embeds = await Promise.all(
 			attachments?.map(deps.hashOrUrlToEmbed) ?? [],
@@ -84,15 +84,22 @@ export const createWrappa = (deps: WrappaDeps) => {
 			);
 		}
 
-		if (action === "like" || action === "like+reply") {
+		if (
+			action === "like" ||
+			action === "like+reply" ||
+			action === "like+recast"
+		) {
 			if (!cast) {
 				throw new Error(`Cast not found: ${hashOrUrl}`);
 			}
-			console.log(`Liking cast ${cast}`);
-			await deps.likeCast({
-				fid: cast.cast.author.fid,
-				hash: `0x${cast.cast.hash.replace("0x", "")}`,
-			});
+			console.log(`Liking cast ${cast.cast.hash}`);
+			await deps.castReact(
+				{
+					fid: cast.cast.author.fid,
+					hash: `0x${cast.cast.hash.replace("0x", "")}`,
+				},
+				ReactionType.LIKE,
+			);
 		}
 
 		if (action === "reply" || action === "like+reply") {
@@ -114,11 +121,25 @@ export const createWrappa = (deps: WrappaDeps) => {
 				mentionsPositions,
 			);
 		}
+
+		if (action === "recast" || action === "like+recast") {
+			if (!cast) {
+				throw new Error("Cast not found");
+			}
+			console.log(`Recasting ${cast.cast.hash}`);
+			await deps.castReact(
+				{
+					fid: cast.cast.author.fid,
+					hash: `0x${cast.cast.hash.replace("0x", "")}`,
+				},
+				ReactionType.RECAST,
+			);
+		}
 	};
 };
 
 export const wrappa = createWrappa({
-	likeCast,
+	castReact: castReact,
 	publishCast,
 	lookupCastByHashOrWarpcastUrl,
 	lookupChannelByIdOrParentUrl,

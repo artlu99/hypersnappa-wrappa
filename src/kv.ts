@@ -19,8 +19,7 @@ export function createCachedFetcherGet(
 	const now = options?.now ?? Date.now;
 	const mapSize = options?.mapSize ?? 256 * 1024 * 1024;
 	const fetchJson =
-		options?.fetchJson ??
-		(<T>(url: string) => fetcherFunc.get<T>(url));
+		options?.fetchJson ?? (<T>(url: string) => fetcherFunc.get<T>(url));
 	const logger = options?.logger ?? (() => {});
 
 	let db: RootDatabase<NeynarCacheEntry, string> | null = null;

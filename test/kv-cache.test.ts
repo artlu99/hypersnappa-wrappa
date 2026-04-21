@@ -12,7 +12,7 @@ describe("createCachedFetcherGet", () => {
 
 		let nowMs = 1_000_000;
 		let calls = 0;
-		const fetchJson = async <T,>(_url: string) => {
+		const fetchJson = async <T>(_url: string) => {
 			calls++;
 			return { n: calls } as T;
 		};
@@ -39,4 +39,3 @@ describe("createCachedFetcherGet", () => {
 		await rm(dir, { recursive: true, force: true });
 	});
 });
-

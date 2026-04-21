@@ -29,4 +29,3 @@ describe("castTypeForText", () => {
 		expect(castTypeForText("")).toBe(CastType.CAST);
 	});
 });
-

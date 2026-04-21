@@ -21,7 +21,7 @@ import {
 } from "./src/neynar";
 import { getBalance, getUSDCBalance } from "./src/rpc";
 import { urlToCastHash } from "./src/shim";
-import { firstNUnique, shortenAddress } from "./src/utils";
+import { firstNUnique, readAllStdin, shortenAddress } from "./src/utils";
 import { wrappa } from "./src/wrappa";
 
 const program = new Command();
@@ -69,18 +69,42 @@ program
 program
 	.command("cast")
 	.description("Cast a message")
-	.argument("<message>", "Message to cast")
-	.option("-c, --channel <channel>", "Channel to cast to", "dev")
-	.option("-a, --attachments <attachments>", "Attachments to cast", [])
+	.argument("[message]", "Message to cast")
+	.option("-c, --channel <channel>", "Channel to cast to")
+	.option(
+		"-e, --embed <url>",
+		"URL to embed",
+		(value: string, previous: string[]) => previous.concat([value]),
+		[] as string[],
+	)
 	.action(async (message, options) => {
+		const maybeFatText = message !== undefined ? message : await readAllStdin();
+		const text = maybeFatText.trimEnd();
+		invariant(text.length > 0, "Text not provided or is empty");
+
+		invariant(
+			options.embed.length <= 2,
+			`Too many embeds: got ${options.embed.length}, max is 2`,
+		);
+		invariant(
+			options.embed.every((u) => u.trim().length > 0),
+			"Embed URLs cannot be empty",
+		);
+
 		await wrappa({
 			action: "cast",
-			text: message,
+			text,
 			channelId: options.channel,
-			attachments: options.attachments
-				? options.attachments.split(",").map((a) => a.trim())
-				: [],
+			attachments: options.embed,
 		});
+	});
+
+program
+	.command("boost")
+	.description("Boost a cast by liking + recasting")
+	.argument("<url>", "URL to boost")
+	.action(async (url) => {
+		await wrappa({ action: "like+recast", hashOrUrl: url });
 	});
 
 program
@@ -177,10 +201,14 @@ program
 		invariant(user, `User not found: ${username}`);
 		const primaryAddress = user.verified_addresses.primary.eth_address;
 		invariant(primaryAddress, `Primary address not found: ${username}`);
-		console.log(`[${fid}] ${user.username} ${shortenAddress(primaryAddress)} (primary)`);
+		console.log(
+			`[${fid}] ${user.username} ${shortenAddress(primaryAddress)} (primary)`,
+		);
 		const ethBalance = await getBalance(primaryAddress);
 		const usdcBalance = await getUSDCBalance(primaryAddress);
-		console.log(`Base: ${ethBalance.toFixed(4)} ETH, ${usdcBalance.toFixed(2)} USDC`);
+		console.log(
+			`Base: ${ethBalance.toFixed(4)} ETH, ${usdcBalance.toFixed(2)} USDC`,
+		);
 	});
 
 program

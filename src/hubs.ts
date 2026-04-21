@@ -11,7 +11,6 @@ export const getTimestampFromFarcasterTimestamp = (
 	return farcasterTimestamp * 1000 + FARCASTER_EPOCH;
 };
 
-
 interface Hub {
 	shortname: string;
 	url: string;

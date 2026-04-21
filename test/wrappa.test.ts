@@ -3,7 +3,7 @@ import { createWrappa, type WrappaDeps } from "../src/wrappa";
 
 const makeDeps = (overrides?: Partial<WrappaDeps>): WrappaDeps => {
 	return {
-		likeCast: async () => new Response(),
+		castReact: async () => new Response(),
 		publishCast: async () => new Response(),
 		lookupCastByHashOrWarpcastUrl: async () =>
 			({
@@ -22,9 +22,9 @@ const makeDeps = (overrides?: Partial<WrappaDeps>): WrappaDeps => {
 describe("wrappa orchestration", () => {
 	test("cast requires text", async () => {
 		const wrappa = createWrappa(makeDeps());
-		await expect(
-			wrappa({ action: "cast", channelId: "dev" }),
-		).rejects.toThrow("Text is required");
+		await expect(wrappa({ action: "cast", channelId: "dev" })).rejects.toThrow(
+			"Text is required",
+		);
 	});
 
 	test("like requires an existing cast", async () => {
@@ -64,4 +64,3 @@ describe("wrappa orchestration", () => {
 		expect(embedCalls).toBe(2);
 	});
 });
-

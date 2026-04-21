@@ -12,8 +12,14 @@ export const urlToCastHash = async (
 	const [_protocol, _slash, _domain, username, shortHash] = url.split("/");
 	invariant(username, `Username is required: ${url}`);
 	invariant(shortHash, `Short hash is required: ${url}`);
-    invariant(shortHash.length === 10, `Short hash must be 10 characters: ${shortHash}`);
-    invariant(shortHash.startsWith("0x"), `Short hash must start with 0x: ${shortHash}`);
+	invariant(
+		shortHash.length === 10,
+		`Short hash must be 10 characters: ${shortHash}`,
+	);
+	invariant(
+		shortHash.startsWith("0x"),
+		`Short hash must start with 0x: ${shortHash}`,
+	);
 
 	// 1. resolve the user to FID
 	const fid = await getFidFromUsername(username);
