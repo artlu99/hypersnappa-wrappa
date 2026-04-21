@@ -17,7 +17,7 @@ import {
 } from "@farcaster/core";
 import { LinkType } from "@neynar/nodejs-sdk/build/hub-api/models";
 import { fetcher } from "itty-fetcher";
-import { sift, sort } from "radash";
+import { sift, sort, unique } from "radash";
 import { FID, PK } from "./env";
 import { getHub } from "./hubs";
 import { hexToBytes } from "./utils";
@@ -328,9 +328,11 @@ export async function getReactionsByCast(
 		`/v1/reactionsByCast?reactionType=Like&reverse=true&target_fid=${fid}&target_hash=${hash}`,
 	);
 	if (!isHubError(response)) {
-		return sift(
-			sort(response.messages ?? [], (r) => r.data?.timestamp ?? 0, true).map(
-				(r) => r.data?.fid ?? null,
+		return unique(
+			sift(
+				sort(response.messages ?? [], (r) => r.data?.timestamp ?? 0, true).map(
+					(r) => r.data?.fid ?? null,
+				),
 			),
 		);
 	}
