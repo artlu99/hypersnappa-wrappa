@@ -8,44 +8,45 @@ import type {
 	UserResponse,
 } from "@neynar/nodejs-sdk/build/api";
 import { fetcher } from "itty-fetcher";
-import { open, type RootDatabase } from "lmdb";
 import invariant from "tiny-invariant";
 import { NEYNAR_API_KEY } from "./env";
+import { createCachedFetcherGet } from "./kv";
 import { urlToCastHash } from "./shim";
 
-const DEFAULT_NEYNAR_LMDB_PATH = ".cache/neynar-lmdb";
-const DEFAULT_NEYNAR_PROVIDER: KnownNeynarApis = "quilibrium";
+const DEFAULT_NEYNAR_PROVIDER: KnownNeynarProviders = "quilibrium";
+const LONG_TTL = 30 * 24 * 60 * 60; // 30 days
+const SHORT_TTL = 24 * 60 * 60; // 1 day
 const SHIM_LOOKBACK = 500;
 
-interface NeynarApi {
-	shortname: string;
+interface NeynarProvider {
+	name: string;
 	url: string;
 	api_key?: string;
 }
 
-const knownNeynarApis: NeynarApi[] = [
+const knownNeynarProviders: NeynarProvider[] = [
 	{
-		shortname: "neynar",
+		name: "neynar",
 		url: "api.neynar.com",
 		api_key: NEYNAR_API_KEY,
 	},
 	{
-		shortname: "quilibrium",
+		name: "quilibrium",
 		url: "haatz.quilibrium.com",
 		api_key: undefined,
 	},
 ];
-type KnownNeynarApis = "neynar" | "quilibrium";
+export type KnownNeynarProviders = "neynar" | "quilibrium";
 
-const getNeynarApi = (shortname: KnownNeynarApis): NeynarApi => {
-	const api = knownNeynarApis.find((api) => api.shortname === shortname);
-	invariant(api, `Neynar API ${shortname} not found`);
+const getNeynarApi = (name: KnownNeynarProviders): NeynarProvider => {
+	const api = knownNeynarProviders.find((api) => api.name === name);
+	invariant(api, `Neynar API ${name} not found`);
 
 	return api;
 };
 
-const neynarApi = (shortname: KnownNeynarApis = DEFAULT_NEYNAR_PROVIDER) => {
-	const api = getNeynarApi(shortname);
+export const neynarApi = (name: KnownNeynarProviders) => {
+	const api = getNeynarApi(name);
 	return fetcher({
 		base: `https://${api.url}`,
 		headers: {
@@ -55,85 +56,37 @@ const neynarApi = (shortname: KnownNeynarApis = DEFAULT_NEYNAR_PROVIDER) => {
 	});
 };
 
-const LONG_TTL = 30 * 24 * 60 * 60; // 30 days
-const SHORT_TTL = 24 * 60 * 60; // 1 day
-
-type NeynarCacheEntry = { exp: number; body: unknown };
-
-export function createCachedFetcherGet(
-	neynarProvider: KnownNeynarApis = DEFAULT_NEYNAR_PROVIDER,
-	options?: {
-		cachePath?: string;
-		now?: () => number;
-		mapSize?: number;
-		fetchJson?: <T>(url: string) => Promise<T>;
-		logger?: (line: string) => void;
-	},
-) {
-	const cachePath = options?.cachePath ?? DEFAULT_NEYNAR_LMDB_PATH;
-	const now = options?.now ?? Date.now;
-	const mapSize = options?.mapSize ?? 256 * 1024 * 1024;
-	const fetchJson =
-		options?.fetchJson ??
-		(<T>(url: string) => neynarApi(neynarProvider).get<T>(url));
-	const logger = options?.logger ?? (() => {});
-
-	let db: RootDatabase<NeynarCacheEntry, string> | null = null;
-	const getDb = () => {
-		if (!db) {
-			db = open<NeynarCacheEntry, string>({
-				path: cachePath,
-				encoding: "json",
-				mapSize,
-			});
-		}
-		return db;
-	};
-
-	return async function cachedFetcherGet<T>(url: string, ttlSeconds: number) {
-		const key = `neynar:${url}`;
-		const db = getDb();
-		const cached = db.get(key);
-
-		if (cached && typeof cached.exp === "number") {
-			if (now() < cached.exp) {
-				logger(`Cache hit for ${url}`);
-				return cached.body as T;
-			}
-			db.removeSync(key);
-		}
-
-		const res = await fetchJson<T>(url);
-		db.putSync(key, {
-			exp: now() + ttlSeconds * 1000,
-			body: res,
-		});
-		logger(`Cache set for ${url} with TTL ${ttlSeconds}`);
-		return res as T;
-	};
-}
-
-const cachedFetcherGet = createCachedFetcherGet();
+const cachedFetcherGet = createCachedFetcherGet(
+	neynarApi(DEFAULT_NEYNAR_PROVIDER),
+);
 
 export const lookupCastByHashOrWarpcastUrl = async (
 	hashOrUrl: string,
 	shimLookback: number = SHIM_LOOKBACK,
 ) => {
+	// Neynar can handle both hash and URL, but Quilibrium doesn't support URLs
+	// so we handle both cases with the same approach:
+	// 1. check if the input is a URL
+	// 2. if it is, convert it to a hash
+	// 3. if it is not, use the hash as is
+	// 4. fetch the cast from the API
+	// 5. return the cast
+
 	const inputType: CastParamType =
 		hashOrUrl.startsWith("https://warpcast.com/") ||
 		hashOrUrl.startsWith("https://farcaster.xyz/")
 			? "url"
 			: "hash";
 
-	const fullHash = inputType === "url" ? 
-		 await urlToCastHash(hashOrUrl, shimLookback) : hashOrUrl;
+	const fullHash =
+		inputType === "url"
+			? await urlToCastHash(hashOrUrl, shimLookback)
+			: hashOrUrl;
 	invariant(fullHash, `Cast not found: ${hashOrUrl}`);
 
 	try {
 		const res = await cachedFetcherGet<CastResponse>(
-			`/v2/farcaster/cast?identifier=${encodeURIComponent(
-				fullHash,
-			)}&type=${inputType === "url" ? "hash" : "hash"}`,
+			`/v2/farcaster/cast?identifier=${encodeURIComponent(fullHash)}&type=hash`,
 			LONG_TTL,
 		);
 		return res;
@@ -191,9 +144,14 @@ export const getUserByUsername = async (username: string) => {
 };
 
 export const getFollowing = async (fid: number) => {
-	const res = await cachedFetcherGet<FollowersResponse>(
-		`/v2/farcaster/following?fid=${fid}&sort_type=desc_chron&limit=100`,
-		1,
-	);
-	return res;
+	try {
+		const res = await cachedFetcherGet<FollowersResponse>(
+			`/v2/farcaster/following?fid=${fid}&sort_type=desc_chron&limit=100`,
+			1, // ttl needs to be even shorter to catch real follows in time
+		);
+		return res;
+	} catch (error) {
+		console.error("Error fetching following:", error);
+		return undefined;
+	}
 };

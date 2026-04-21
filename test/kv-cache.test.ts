@@ -2,7 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createCachedFetcherGet } from "../src/neynar";
+import { fetcher } from "itty-fetcher";
+import { createCachedFetcherGet } from "../src/kv";
 
 describe("createCachedFetcherGet", () => {
 	test("caches within TTL and refetches after expiry", async () => {
@@ -16,7 +17,7 @@ describe("createCachedFetcherGet", () => {
 			return { n: calls } as T;
 		};
 
-		const cachedGet = createCachedFetcherGet(undefined, {
+		const cachedGet = createCachedFetcherGet(fetcher({}), {
 			cachePath,
 			now: () => nowMs,
 			fetchJson,
