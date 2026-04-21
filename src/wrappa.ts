@@ -1,10 +1,10 @@
 import type { Embed } from "@farcaster/core";
-import { hexToBytes } from "viem";
 import { likeCast, publishCast } from "./hypersnap";
 import {
 	lookupCastByHashOrWarpcastUrl,
 	lookupChannelByIdOrParentUrl,
 } from "./neynar";
+import { hexToBytes } from "./utils";
 
 export type WrappaInput = {
 	hashOrUrl?: string;
@@ -24,7 +24,7 @@ export type WrappaDeps = {
 	hashOrUrlToEmbed: (hashOrUrl: string) => Promise<Embed>;
 };
 
-export const defaultHashOrUrlToEmbed = async (
+const defaultHashOrUrlToEmbed = async (
 	hashOrUrl: string,
 ): Promise<Embed> => {
 	if (

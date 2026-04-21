@@ -17,9 +17,9 @@ import {
 import { LinkType } from "@neynar/nodejs-sdk/build/hub-api/models";
 import { fetcher } from "itty-fetcher";
 import { sift } from "radash";
-import { hexToBytes } from "viem";
 import { FID, PK } from "./env";
 import { getHub } from "./hubs";
+import { hexToBytes } from "./utils";
 
 const hub = getHub("quilibrium");
 
@@ -33,14 +33,14 @@ export const HUB_POST_CONFIG = {
 	encode: false as const,
 };
 
-export const castTypeForText = (text: string): CastType => {
+function castTypeForText(text: string): CastType {
 	const lengthInBytes = new TextEncoder().encode(text).length;
 
 	if (lengthInBytes > 320) {
 		return CastType.LONG_CAST;
 	}
 	return CastType.CAST;
-};
+}
 
 export async function publishCast(
 	text: string,
@@ -225,7 +225,7 @@ async function _getLinksByFid(fid: number) {
 export async function getLinks(fid: number) {
 	const links = await _getLinksByFid(fid);
 	return sift(links.map((l) => l?.targetFid));
-};
+}
 
 export async function getCasts(
 	fid: number,
@@ -241,7 +241,11 @@ export async function getCasts(
 			if (!data) return null;
 			const { castAddBody } = data;
 			if (!castAddBody) return null;
-			return { text: castAddBody.text ?? null, hash: r.hash, timestamp: r.data?.timestamp ?? null };
+			return {
+				text: castAddBody.text ?? null,
+				hash: r.hash,
+				timestamp: r.data?.timestamp ?? null,
+			};
 		}),
 	);
 }
@@ -277,7 +281,7 @@ export async function deleteCast(hash: `0x${string}`) {
 		console.error("Error deleting cast:", e);
 		throw e;
 	}
-};
+}
 
 export async function getLikesByFid(fid: number) {
 	const response = await client.get<{ messages: Message[] }>(
