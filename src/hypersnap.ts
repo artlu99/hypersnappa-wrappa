@@ -2,7 +2,7 @@ import {
 	CastType,
 	type Embed,
 	FarcasterNetwork,
-	HubError,
+	type HubError,
 	isHubError,
 	Message,
 	makeCastAdd,
@@ -12,7 +12,7 @@ import {
 	makeReactionAdd,
 	NobleEd25519Signer,
 	ReactionType,
-	UserNameProof,
+	type UserNameProof,
 } from "@farcaster/core";
 import { LinkType } from "@neynar/nodejs-sdk/build/hub-api/models";
 import { fetcher } from "itty-fetcher";
@@ -215,15 +215,15 @@ export async function unfollow(targetFid: number) {
 	}
 }
 
-async function getLinksByFid(fid: number) {
+async function _getLinksByFid(fid: number) {
 	const response = await client.get<{ messages: Message[] }>(
 		`/v1/linksByFid?fid=${fid}&reverse=true`,
 	);
 	return response.messages.map((r) => r.data?.linkBody);
 }
 
-export const getLinks = async (fid: number) => {
-	const links = await getLinksByFid(fid);
+export async function getLinks(fid: number) {
+	const links = await _getLinksByFid(fid);
 	return sift(links.map((l) => l?.targetFid));
 };
 
@@ -246,7 +246,7 @@ export async function getCasts(
 	);
 }
 
-export const deleteCast = async (hash: `0x${string}`) => {
+export async function deleteCast(hash: `0x${string}`) {
 	const signer = new NobleEd25519Signer(hexToBytes(PK));
 
 	const dataOptions = {

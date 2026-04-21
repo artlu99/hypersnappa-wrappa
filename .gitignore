@@ -4,7 +4,8 @@ bun.lock
 
 # dotenvx environment variable files
 .env
-.env.keys
+.env.*
+!.env.example
 
 # caches
 tsconfig.tsbuildinfo
