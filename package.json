@@ -9,7 +9,7 @@
 	"dependencies": {
 		"@dotenvx/dotenvx": "^1.61.1",
 		"@farcaster/core": "^0.18.10",
-		"@neynar/nodejs-sdk": "^2.46.0",
+		"@neynar/nodejs-sdk": "^3.137.2",
 		"commander": "^14.0.3",
 		"itty-fetcher": "^1.0.10",
 		"lmdb": "^3.5.4",
@@ -20,6 +20,6 @@
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
-		"typescript": "^5"
+		"typescript": "^5.9.3"
 	}
 }

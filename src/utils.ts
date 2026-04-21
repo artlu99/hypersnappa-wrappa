@@ -50,3 +50,7 @@ export const hexToBytes = (hex_: `0x${string}`): Uint8Array => {
 	}
 	return bytes;
 }
+
+export const shortenAddress = (address: string) => {
+	return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}

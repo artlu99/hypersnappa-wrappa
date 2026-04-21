@@ -6,13 +6,22 @@ import invariant from "tiny-invariant";
 import { getTimestamp, getTimestampFromFarcasterTimestamp } from "./src/hubs";
 import {
 	deleteCast,
+	follow,
 	getCasts,
 	getFidFromUsername,
 	getLikesByFid,
+	getReactionsByCast,
+	unfollow,
 } from "./src/hypersnap";
-import { getUserInfo } from "./src/neynar";
+import {
+	getFollowers,
+	getFollowing,
+	getUserInfo,
+	lookupCastByHashOrWarpcastUrl,
+} from "./src/neynar";
+import { getBalance, getUSDCBalance } from "./src/rpc";
 import { urlToCastHash } from "./src/shim";
-import { firstNUnique } from "./src/utils";
+import { firstNUnique, shortenAddress } from "./src/utils";
 import { wrappa } from "./src/wrappa";
 
 const program = new Command();
@@ -62,8 +71,16 @@ program
 	.description("Cast a message")
 	.argument("<message>", "Message to cast")
 	.option("-c, --channel <channel>", "Channel to cast to", "dev")
+	.option("-a, --attachments <attachments>", "Attachments to cast", [])
 	.action(async (message, options) => {
-		await wrappa({ action: "cast", text: message, channelId: options.channel });
+		await wrappa({
+			action: "cast",
+			text: message,
+			channelId: options.channel,
+			attachments: options.attachments
+				? options.attachments.split(",").map((a) => a.trim())
+				: [],
+		});
 	});
 
 program
@@ -88,6 +105,24 @@ program
 	});
 
 program
+	.command("who-liked")
+	.description("Who liked a cast")
+	.argument("<url>", "URL to get who liked")
+	.action(async (url) => {
+		const cast = await lookupCastByHashOrWarpcastUrl(url);
+		invariant(cast, `Cast not found: ${url}`);
+		const reactoooors = await getReactionsByCast(
+			cast.cast.author.fid,
+			`0x${cast.cast.hash.replace("0x", "")}`,
+		);
+		(reactoooors ?? []).forEach(async (fid) => {
+			if (!fid) return;
+			const user = await getUserInfo(fid);
+			console.log(`${user?.username} [${fid}]`);
+		});
+	});
+
+program
 	.command("frens")
 	.description("List frens by most recent likes")
 	.option("-n, --limit <limit>", "Limit the number of frens to list", "5")
@@ -95,15 +130,110 @@ program
 		const limit = Number(options.limit ?? 5);
 		const frens = await getLikesByFid(Number(process.env.FID));
 		await Promise.all(
-			firstNUnique(sort(frens ?? [], (f) => f.timestamp ?? 0, true), (f) => f.targetFid, limit).map((f) => f.targetFid)
+			firstNUnique(
+				sort(frens ?? [], (f) => f.timestamp ?? 0, true),
+				(f) => f.targetFid,
+				limit,
+			)
+				.map((f) => f.targetFid)
 				.slice(0, limit)
 				.map(async (f) => {
-					const user = await getUserInfo(f ?? 0);
-					console.log(
-						`${user?.username}`,
-					);
+					if (!f) return;
+					const user = await getUserInfo(f);
+					console.log(`${user?.username}`);
 				}),
 		);
+	});
+
+program
+	.command("user")
+	.description("Get user info")
+	.argument("<username>", "Username to get info for")
+	.action(async (username) => {
+		// const user = await getUserByUsername(username);
+		const fid = await getFidFromUsername(username);
+		invariant(fid, `User not found: ${username}`);
+		const user = await getUserInfo(fid);
+		console.log(user);
+	});
+
+program
+	.command("user-info")
+	.description("Get user info")
+	.argument("<fid>", "FID to get info for")
+	.action(async (fid) => {
+		const user = await getUserInfo(Number(fid));
+		console.log(user);
+	});
+
+program
+	.command("balance")
+	.description("Get balance")
+	.argument("<username>", "Username to get balance for")
+	.action(async (username) => {
+		const fid = await getFidFromUsername(username);
+		invariant(fid, `User not found: ${username}`);
+		const user = await getUserInfo(fid);
+		invariant(user, `User not found: ${username}`);
+		const primaryAddress = user.verified_addresses.primary.eth_address;
+		invariant(primaryAddress, `Primary address not found: ${username}`);
+		console.log(`[${fid}] ${user.username} ${shortenAddress(primaryAddress)} (primary)`);
+		const ethBalance = await getBalance(primaryAddress);
+		const usdcBalance = await getUSDCBalance(primaryAddress);
+		console.log(`Base: ${ethBalance.toFixed(4)} ETH, ${usdcBalance.toFixed(2)} USDC`);
+	});
+
+program
+	.command("follow")
+	.description("Follow a user")
+	.argument("<fid>", "FID to follow")
+	.action(async (fid) => {
+		await follow(Number(fid));
+	});
+
+program
+	.command("unfollow")
+	.description("Unfollow a user")
+	.argument("<fid>", "FID to unfollow")
+	.action(async (fid) => {
+		await unfollow(Number(fid));
+	});
+
+program
+	.command("following")
+	.description("List following")
+	.option("-f, --fid <fid>", "FID to list following for", process.env.FID)
+	.action(async (options) => {
+		const fid = Number(options.fid ?? process.env.FID);
+		const following = await getFollowing(fid);
+		// console.log(following);
+		console.log(
+			(following?.users ?? [])
+				.map((f) => `${f.username} [${f.fid}]`)
+				.join("\n"),
+		);
+	});
+
+program
+	.command("followers")
+	.description("List followers")
+	.option("-f, --fid <fid>", "FID to list followers for", process.env.FID)
+	.action(async (options) => {
+		const fid = Number(options.fid ?? process.env.FID);
+		const followers = await getFollowers(fid);
+		console.log(
+			(followers?.users ?? [])
+				.map((f) => `${f.username} [${f.fid}]`)
+				.join("\n"),
+		);
+	});
+
+program
+	.command("whoami")
+	.description("Get whoami")
+	.action(async () => {
+		const user = await getUserInfo(Number(process.env.FID));
+		console.log(user);
 	});
 
 program.parse();

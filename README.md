@@ -15,10 +15,19 @@ Commands (from `./hyper --help`):
 - `ls <user>`: List most recent casts+replies
 - `url <url>`: Resolve a cast URL to a full hash
 - `like <url>`: Like a cast
-- `cast <message>`: Cast a message
+- `cast <message>`: Cast a message (options: `--channel`, `--attachments`)
 - `reply <url> <message>`: Reply to a cast (option: `--like`)
 - `delete <url>`: Delete a cast
+- `who-liked <url>`: Who liked a cast
 - `frens`: List frens by most recent likes (option: `--limit`)
+- `user <username>`: Get user info by username
+- `user-info <fid>`: Get user info by FID
+- `balance <username>`: Get ETH + USDC balance on Base
+- `follow <fid>`: Follow a user
+- `unfollow <fid>`: Unfollow a user
+- `following`: List users you follow (option: `--fid`)
+- `followers`: List your followers (option: `--fid`)
+- `whoami`: Get your own user info
 
 ## Setup (end users)
 

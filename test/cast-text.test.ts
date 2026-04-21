@@ -24,5 +24,9 @@ describe("castTypeForText", () => {
 		expect(castTypeForText(text)).toBe(CastType.CAST);
 		expect(castTypeForText(text + unit)).toBe(CastType.LONG_CAST);
 	});
+
+	test("empty string uses CAST", () => {
+		expect(castTypeForText("")).toBe(CastType.CAST);
+	});
 });
 

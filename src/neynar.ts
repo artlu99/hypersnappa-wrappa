@@ -1,11 +1,9 @@
 import type {
 	BulkUsersResponse,
-	CastParamType,
 	CastResponse,
 	ChannelResponse,
-	ChannelType,
-	FollowersResponse,
 	UserResponse,
+	UsersResponse,
 } from "@neynar/nodejs-sdk/build/api";
 import { fetcher } from "itty-fetcher";
 import invariant from "tiny-invariant";
@@ -60,6 +58,14 @@ const cachedFetcherGet = createCachedFetcherGet(
 	neynarApi(DEFAULT_NEYNAR_PROVIDER),
 );
 
+export const isCastUrl = (maybeUrl: string) => {
+	return (
+		maybeUrl.startsWith("https://warpcast.com/") ||
+		(maybeUrl.startsWith("https://farcaster.xyz/") &&
+			!maybeUrl.startsWith("https://farcaster.xyz/miniapps/"))
+	);
+};
+
 export const lookupCastByHashOrWarpcastUrl = async (
 	hashOrUrl: string,
 	shimLookback: number = SHIM_LOOKBACK,
@@ -72,11 +78,7 @@ export const lookupCastByHashOrWarpcastUrl = async (
 	// 4. fetch the cast from the API
 	// 5. return the cast
 
-	const inputType: CastParamType =
-		hashOrUrl.startsWith("https://warpcast.com/") ||
-		hashOrUrl.startsWith("https://farcaster.xyz/")
-			? "url"
-			: "hash";
+	const inputType: "url" | "hash" = isCastUrl(hashOrUrl) ? "url" : "hash";
 
 	const fullHash =
 		inputType === "url"
@@ -99,7 +101,7 @@ export const lookupCastByHashOrWarpcastUrl = async (
 };
 
 export const lookupChannelByIdOrParentUrl = async (idOrUrl: string) => {
-	const type: ChannelType = idOrUrl.startsWith("https://warpcast.com/")
+	const type: "parent_url" | "id" = idOrUrl.startsWith("https://warpcast.com/")
 		? "parent_url"
 		: "id";
 
@@ -130,28 +132,28 @@ export const getUserInfo = async (fid: number) => {
 	}
 };
 
-export const getUserByUsername = async (username: string) => {
-	try {
-		const res = await cachedFetcherGet<UserResponse>(
-			`/v2/farcaster/user/by_username/?username=${username}`,
-			SHORT_TTL,
-		);
-		return res.user;
-	} catch (error) {
-		console.error("Error fetching user info:", error);
-		return undefined;
-	}
-};
-
 export const getFollowing = async (fid: number) => {
 	try {
-		const res = await cachedFetcherGet<FollowersResponse>(
+		const res = await cachedFetcherGet<UsersResponse>(
 			`/v2/farcaster/following?fid=${fid}&sort_type=desc_chron&limit=100`,
 			1, // ttl needs to be even shorter to catch real follows in time
 		);
 		return res;
 	} catch (error) {
 		console.error("Error fetching following:", error);
+		return undefined;
+	}
+};
+
+export const getFollowers = async (fid: number) => {
+	try {
+		const res = await cachedFetcherGet<UsersResponse>(
+			`/v2/farcaster/followers?fid=${fid}&sort_type=desc_chron&limit=100`,
+			1, // ttl needs to be even shorter to catch real follows in time
+		);
+		return res;
+	} catch (error) {
+		console.error("Error fetching followers:", error);
 		return undefined;
 	}
 };

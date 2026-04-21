@@ -17,6 +17,7 @@ src/env.ts            # dotenvx config(); FID, PK, NEYNAR_API_KEY
 src/hubs.ts           # Hub registry + getHub()
 src/hypersnap.ts      # hub HTTP client; Farcaster message builders
 src/neynar.ts         # api.neynar.com + LMDB cache
+src/rpc.ts            # RPC racer client (e.g., ETH + USDC balances on Base)
 src/wrappa.ts         # high-level cast / like / reply orchestration
 src/utils.ts          # small utilities used by CLI scripts
 package.json          # "start" -> bun run scripts/scratch.ts
@@ -41,6 +42,7 @@ Template: `.env.example`.
 - Hub HTTP: from `getHub("quilibrium")` in `src/hypersnap.ts` → `https://haatz.quilibrium.com` (ssl true). Other hub records in `src/hubs.ts` (`neynar`, `borodutch`).
 - Hub write path: `POST /v1/submitMessage` body = `Buffer` protobuf bytes, header `Content-Type: application/octet-stream`, itty-fetcher `encode: false`.
 - Neynar: `src/neynar.ts` `base: "https://api.neynar.com"`, header `accept: application/json`, `x-api-key: NEYNAR_API_KEY`.
+- RPC: `src/rpc.ts` `base: "https://evm.stupidtech.net/v1"` (rpc-racer), defaults to Base (chain 8453).
 
 ### Repo hygiene constraints
 

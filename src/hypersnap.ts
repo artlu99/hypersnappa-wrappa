@@ -13,10 +13,11 @@ import {
 	NobleEd25519Signer,
 	ReactionType,
 	type UserNameProof,
+	MessagesResponse,
 } from "@farcaster/core";
 import { LinkType } from "@neynar/nodejs-sdk/build/hub-api/models";
 import { fetcher } from "itty-fetcher";
-import { sift } from "radash";
+import { sift, sort } from "radash";
 import { FID, PK } from "./env";
 import { getHub } from "./hubs";
 import { hexToBytes } from "./utils";
@@ -33,7 +34,7 @@ export const HUB_POST_CONFIG = {
 	encode: false as const,
 };
 
-function castTypeForText(text: string): CastType {
+export function castTypeForText(text: string): CastType {
 	const lengthInBytes = new TextEncoder().encode(text).length;
 
 	if (lengthInBytes > 320) {
@@ -310,6 +311,23 @@ export async function getFidFromUsername(username: string) {
 	);
 	if (!isHubError(response)) {
 		return response.fid;
+	}
+	return null;
+}
+
+export async function getReactionsByCast(
+	fid: number,
+	hash: `0x${string}`,
+): Promise<number[] | null> {
+	const response = await client.get<MessagesResponse | HubError>(
+		`/v1/reactionsByCast?reactionType=Like&reverse=true&target_fid=${fid}&target_hash=${hash}`,
+	);
+	if (!isHubError(response)) {
+		return sift(
+			sort(response.messages ?? [], (r) => r.data?.timestamp ?? 0, true).map(
+				(r) => r.data?.fid ?? null,
+			),
+		);
 	}
 	return null;
 }

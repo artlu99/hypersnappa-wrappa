@@ -1,6 +1,7 @@
 import type { Embed } from "@farcaster/core";
 import { likeCast, publishCast } from "./hypersnap";
 import {
+	isCastUrl,
 	lookupCastByHashOrWarpcastUrl,
 	lookupChannelByIdOrParentUrl,
 } from "./neynar";
@@ -27,11 +28,7 @@ export type WrappaDeps = {
 const defaultHashOrUrlToEmbed = async (
 	hashOrUrl: string,
 ): Promise<Embed> => {
-	if (
-		hashOrUrl.startsWith("0x") ||
-		(hashOrUrl.startsWith("https://farcaster.xyz/") &&
-			!hashOrUrl.startsWith("https://farcaster.xyz/miniapps/"))
-	) {
+	if (hashOrUrl.startsWith("0x") || isCastUrl(hashOrUrl)) {
 		const cast = await lookupCastByHashOrWarpcastUrl(hashOrUrl);
 		if (!cast) {
 			throw new Error(`Cast not found: ${hashOrUrl}`);
