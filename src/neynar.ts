@@ -2,7 +2,6 @@ import type {
 	BulkUsersResponse,
 	CastResponse,
 	ChannelResponse,
-	UserResponse,
 	UsersResponse,
 } from "@neynar/nodejs-sdk/build/api";
 import { fetcher } from "itty-fetcher";

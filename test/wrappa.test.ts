@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock
 import { describe, expect, test } from "bun:test";
 import { createWrappa, type WrappaDeps } from "../src/wrappa";
 

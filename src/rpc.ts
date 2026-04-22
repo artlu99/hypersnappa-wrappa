@@ -8,9 +8,12 @@ const client = fetcher({
 	headers: { "Content-Type": "application/json" },
 });
 
+type RpcOk = { jsonrpc: "2.0"; id: number; result: string };
+type RpcErr = { jsonrpc: "2.0"; id: number; error: unknown };
+
 export const getBalance = async (
 	address: string,
-	chainId: number = 8453, // Base mainnet
+	chainId: number,
 ): Promise<number> => {
 	const response = await client.post(`/${chainId}`, {
 		jsonrpc: "2.0",
@@ -21,22 +24,76 @@ export const getBalance = async (
 	return Number(BigInt(response.result)) / 1e18;
 };
 
-export const getUSDCBalance = async (address: string): Promise<number> => {
-	// USDC on Base
-	const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+export const getTokenBalance = async (
+	address: string,
+	contractAddress: string,
+	chainId: number,
+): Promise<number> => {
+	const decimalsCall = {
+		jsonrpc: "2.0",
+		method: "eth_call",
+		params: [{ to: contractAddress, data: "0x313ce567" }, "latest"],
+		id: 1,
+	} as const;
 
-	const response = await client.post(`/8453`, {
+	const balanceOfCall = {
 		jsonrpc: "2.0",
 		method: "eth_call",
 		params: [
 			{
-				// balanceOf(address) selector
+				to: contractAddress,
 				data: `0x70a08231${address.replace("0x", "").padStart(64, "0")}`,
-				to: USDC,
 			},
 			"latest",
 		],
-		id: 1,
-	});
-	return Number(BigInt(response.result)) / 1e6;
+		id: 2,
+	} as const;
+
+	let decimalsHex: string | undefined;
+	let balanceHex: string | undefined;
+
+	// Try JSON-RPC batch (one HTTP request). If unsupported, fall back.
+	try {
+		const batchRes = await client.post<
+			Array<typeof decimalsCall | typeof balanceOfCall>,
+			Array<RpcOk | RpcErr>
+		>(`/${chainId}`, [decimalsCall, balanceOfCall]);
+
+		if (Array.isArray(batchRes)) {
+			const byId = new Map<number, RpcOk | RpcErr>(
+				batchRes
+					.filter(
+						(r): r is RpcOk | RpcErr =>
+							!!r && typeof (r as { id?: unknown }).id === "number",
+					)
+					.map((r) => [r.id, r]),
+			);
+
+			const d = byId.get(1);
+			const b = byId.get(2);
+
+			if (d && "result" in d && typeof d.result === "string")
+				decimalsHex = d.result;
+			if (b && "result" in b && typeof b.result === "string")
+				balanceHex = b.result;
+		}
+	} catch {
+		// ignore and fall back
+	}
+
+	if (!decimalsHex || !balanceHex) {
+		const decimalsResponse = await client.post<typeof decimalsCall, RpcOk>(
+			`/${chainId}`,
+			decimalsCall,
+		);
+		const balanceOfResponse = await client.post<typeof balanceOfCall, RpcOk>(
+			`/${chainId}`,
+			balanceOfCall,
+		);
+		decimalsHex = decimalsResponse.result;
+		balanceHex = balanceOfResponse.result;
+	}
+
+	const decimals = Number(BigInt(decimalsHex));
+	return Number(BigInt(balanceHex)) / 10 ** decimals;
 };

@@ -9,6 +9,7 @@ export function createCachedFetcherGet(
 	fetcherFunc: ReturnType<typeof fetcher>,
 	options?: {
 		cachePath?: string;
+		keyPrefix?: string;
 		now?: () => number;
 		mapSize?: number;
 		fetchJson?: <T>(url: string) => Promise<T>;
@@ -16,6 +17,7 @@ export function createCachedFetcherGet(
 	},
 ) {
 	const cachePath = options?.cachePath ?? DEFAULT_NEYNAR_LMDB_PATH;
+	const keyPrefix = options?.keyPrefix ?? "neynar:";
 	const now = options?.now ?? Date.now;
 	const mapSize = options?.mapSize ?? 256 * 1024 * 1024;
 	const fetchJson =
@@ -35,7 +37,7 @@ export function createCachedFetcherGet(
 	};
 
 	return async function cachedFetcherGet<T>(url: string, ttlSeconds: number) {
-		const key = `neynar:${url}`;
+		const key = `${keyPrefix}${url}`;
 		const db = getDb();
 		const cached = db.get(key);
 

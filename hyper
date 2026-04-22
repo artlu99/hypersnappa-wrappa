@@ -1,8 +1,10 @@
 #!/usr/bin/env bun
 
+import tab from "@bomb.sh/tab/commander";
 import { Command } from "commander";
 import { sort } from "radash";
 import invariant from "tiny-invariant";
+import { base } from "viem/chains";
 import { getTimestamp, getTimestampFromFarcasterTimestamp } from "./src/hubs";
 import {
 	deleteCast,
@@ -19,8 +21,10 @@ import {
 	getUserInfo,
 	lookupCastByHashOrWarpcastUrl,
 } from "./src/neynar";
-import { getBalance, getUSDCBalance } from "./src/rpc";
+import { getTokenPrice } from "./src/oracle";
+import { getBalance, getTokenBalance } from "./src/rpc";
 import { urlToCastHash } from "./src/shim";
+import { getToken } from "./src/tokens";
 import { firstNUnique, readAllStdin, shortenAddress } from "./src/utils";
 import { wrappa } from "./src/wrappa";
 
@@ -204,10 +208,26 @@ program
 		console.log(
 			`[${fid}] ${user.username} ${shortenAddress(primaryAddress)} (primary)`,
 		);
-		const ethBalance = await getBalance(primaryAddress);
-		const usdcBalance = await getUSDCBalance(primaryAddress);
+		const ethBalance = await getBalance(primaryAddress, base.id);
+		const ethPrice = await getTokenPrice("ETH");
+		const ethBalanceInUSDC = ethBalance * ethPrice;
+
+		const usdcToken = await getToken("USDC", "base");
+		invariant(usdcToken, "USDC token not found");
+		const usdcBalance = await getTokenBalance(primaryAddress, usdcToken.contractAddress, usdcToken.chainId);
+		
+		const degenToken = await getToken("DEGEN", "base");
+		invariant(degenToken, "DEGEN token not found");
+		const degenBalance = await getTokenBalance(primaryAddress, degenToken.contractAddress, degenToken.chainId);
+		const degenPrice = await getTokenPrice("DEGEN");
+		const degenBalanceInUSDC = degenBalance * degenPrice;
+		
 		console.log(
-			`Base: ${ethBalance.toFixed(4)} ETH, ${usdcBalance.toFixed(2)} USDC`,
+			[
+				`Base: ${ethBalance.toFixed(4)} ETH (~$${ethBalanceInUSDC.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })})`,
+				`${usdcBalance.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC`,
+				`${degenBalance.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })} DEGEN (~$${degenBalanceInUSDC.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })})`,
+			].join("; "),
 		);
 	});
 
@@ -263,5 +283,7 @@ program
 		const user = await getUserInfo(Number(process.env.FID));
 		console.log(user);
 	});
+
+tab(program);
 
 program.parse();

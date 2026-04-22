@@ -1,4 +1,4 @@
-import { ReactionType, type Embed } from "@farcaster/core";
+import { type Embed, ReactionType } from "@farcaster/core";
 import { castReact, publishCast } from "./hypersnap";
 import {
 	isCastUrl,
