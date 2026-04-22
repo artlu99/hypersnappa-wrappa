@@ -16,6 +16,7 @@ import {
 	unfollow,
 } from "./src/hypersnap";
 import {
+	getConversation,
 	getFollowers,
 	getFollowing,
 	getUserInfo,
@@ -46,6 +47,32 @@ program
 				.map(
 					(c) =>
 						`${getTimestamp(getTimestampFromFarcasterTimestamp(c.timestamp ?? 0))} ${c.text.slice(0, 70)} [${c.hash.slice(0, 10)}]`,
+				)
+				.join("\n"),
+		);
+	});
+
+program
+	.command("replies")
+	.description("List replies to a cast")
+	.argument("<url>", "URL to get replies for")
+	.action(async (url) => {
+		const hash = await urlToCastHash(url);
+		invariant(hash, `Cast not found: ${url}`);
+		const casts = await getConversation(hash);
+		console.log(
+			[casts.conversation.cast]
+				?.map(
+					(c) =>
+						`${c.timestamp} ${c.text.slice(0, 70)} [${c.hash.slice(0, 10)}]`,
+				)
+				.join("\n"),
+		);
+		console.log(
+			casts.conversation.cast.direct_replies
+				.map(
+					(c) =>
+						`${c.timestamp} ${c.text.slice(0, 70)} [${c.hash.slice(0, 10)}]`,
 				)
 				.join("\n"),
 		);
@@ -214,14 +241,22 @@ program
 
 		const usdcToken = await getToken("USDC", "base");
 		invariant(usdcToken, "USDC token not found");
-		const usdcBalance = await getTokenBalance(primaryAddress, usdcToken.contractAddress, usdcToken.chainId);
-		
+		const usdcBalance = await getTokenBalance(
+			primaryAddress,
+			usdcToken.contractAddress,
+			usdcToken.chainId,
+		);
+
 		const degenToken = await getToken("DEGEN", "base");
 		invariant(degenToken, "DEGEN token not found");
-		const degenBalance = await getTokenBalance(primaryAddress, degenToken.contractAddress, degenToken.chainId);
+		const degenBalance = await getTokenBalance(
+			primaryAddress,
+			degenToken.contractAddress,
+			degenToken.chainId,
+		);
 		const degenPrice = await getTokenPrice("DEGEN");
 		const degenBalanceInUSDC = degenBalance * degenPrice;
-		
+
 		console.log(
 			[
 				`Base: ${ethBalance.toFixed(4)} ETH (~$${ethBalanceInUSDC.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })})`,

@@ -2,6 +2,7 @@ import type {
 	BulkUsersResponse,
 	CastResponse,
 	ChannelResponse,
+	Conversation,
 	UsersResponse,
 } from "@neynar/nodejs-sdk/build/api";
 import { fetcher } from "itty-fetcher";
@@ -84,19 +85,11 @@ export const lookupCastByHashOrWarpcastUrl = async (
 			? await urlToCastHash(hashOrUrl, shimLookback)
 			: hashOrUrl;
 	invariant(fullHash, `Cast not found: ${hashOrUrl}`);
-
-	try {
-		const res = await cachedFetcherGet<CastResponse>(
-			`/v2/farcaster/cast?identifier=${encodeURIComponent(fullHash)}&type=hash`,
-			LONG_TTL,
-		);
-		return res;
-	} catch (error) {
-		console.error(
-			error instanceof Error ? error.message : JSON.stringify(error),
-		);
-		return null;
-	}
+	const res = await cachedFetcherGet<CastResponse>(
+		`/v2/farcaster/cast?identifier=${encodeURIComponent(fullHash)}&type=hash`,
+		LONG_TTL,
+	);
+	return res;
 };
 
 export const lookupChannelByIdOrParentUrl = async (idOrUrl: string) => {
@@ -104,55 +97,41 @@ export const lookupChannelByIdOrParentUrl = async (idOrUrl: string) => {
 		? "parent_url"
 		: "id";
 
-	try {
-		const res = await cachedFetcherGet<ChannelResponse>(
-			`/v2/farcaster/channel?id=${encodeURIComponent(idOrUrl)}&type=${type}`,
-			LONG_TTL,
-		);
-		return res;
-	} catch (error) {
-		console.error(
-			error instanceof Error ? error.message : JSON.stringify(error),
-		);
-		return null;
-	}
+	const res = await cachedFetcherGet<ChannelResponse>(
+		`/v2/farcaster/channel?id=${encodeURIComponent(idOrUrl)}&type=${type}`,
+		LONG_TTL,
+	);
+	return res;
 };
 
 export const getUserInfo = async (fid: number) => {
-	try {
-		const res = await cachedFetcherGet<BulkUsersResponse>(
-			`/v2/farcaster/user/bulk?fids=${fid}`,
-			SHORT_TTL,
-		);
-		return res.users[0];
-	} catch (error) {
-		console.error("Error fetching user info:", error);
-		return undefined;
-	}
+	const res = await cachedFetcherGet<BulkUsersResponse>(
+		`/v2/farcaster/user/bulk?fids=${fid}`,
+		SHORT_TTL,
+	);
+	return res.users[0];
 };
 
 export const getFollowing = async (fid: number) => {
-	try {
-		const res = await cachedFetcherGet<UsersResponse>(
-			`/v2/farcaster/following?fid=${fid}&sort_type=desc_chron&limit=100`,
-			1, // ttl needs to be even shorter to catch real follows in time
-		);
-		return res;
-	} catch (error) {
-		console.error("Error fetching following:", error);
-		return undefined;
-	}
+	const res = await cachedFetcherGet<UsersResponse>(
+		`/v2/farcaster/following?fid=${fid}&sort_type=desc_chron&limit=100`,
+		1, // ttl needs to be even shorter to catch real follows in time
+	);
+	return res;
 };
 
 export const getFollowers = async (fid: number) => {
-	try {
-		const res = await cachedFetcherGet<UsersResponse>(
-			`/v2/farcaster/followers?fid=${fid}&sort_type=desc_chron&limit=100`,
-			1, // ttl needs to be even shorter to catch real follows in time
-		);
-		return res;
-	} catch (error) {
-		console.error("Error fetching followers:", error);
-		return undefined;
-	}
+	const res = await cachedFetcherGet<UsersResponse>(
+		`/v2/farcaster/followers?fid=${fid}&sort_type=desc_chron&limit=100`,
+		1, // ttl needs to be even shorter to catch real follows in time
+	);
+	return res;
+};
+
+export const getConversation = async (hash: string) => {
+	const res = await cachedFetcherGet<Conversation>(
+		`/v2/farcaster/cast/conversation/?limit=20&identifier=${encodeURIComponent(hash)}&type=hash`,
+		1, // ttl needs to be even shorter to catch real replies in time
+	);
+	return res;
 };
