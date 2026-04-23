@@ -10,5 +10,5 @@ url=$1
 
 # call the Farcaster client internal API and print the casts in a table
 curl -s "https://farcaster.xyz/~api/v2/user-thread-casts?castHashPrefix=$short_hash&username=$username&limit=15" \
-  | jq -r '.result.casts[] | [(.hash[0:10]), .author.displayName, (.text[0:70])] | @tsv' \
+  | jq -r '.result.casts[] | [(.hash[0:10]), .author.username, (.text[0:130])] | @tsv' \
   | column -t -s $'\t'

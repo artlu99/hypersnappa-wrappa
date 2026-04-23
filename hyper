@@ -142,11 +142,15 @@ program
 	.command("reply")
 	.description("Reply to a cast")
 	.argument("<url>", "URL to reply to")
-	.argument("<message>", "Message to reply with")
+	.argument("[message]", "Message to reply with")
 	.option("-l, --like", "also like the cast")
 	.action(async (url, message, options) => {
 		const action = options.like ? "like+reply" : "reply";
-		await wrappa({ action, hashOrUrl: url, text: message });
+		const maybeFatText = message !== undefined ? message : await readAllStdin();
+		const text = maybeFatText.trimEnd();
+		invariant(text.length > 0, "Text not provided or is empty");
+
+		await wrappa({ action, hashOrUrl: url, text });
 	});
 
 program
