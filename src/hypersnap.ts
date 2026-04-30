@@ -18,8 +18,10 @@ import {
 import { LinkType } from "@neynar/nodejs-sdk/build/hub-api/models";
 import { fetcher } from "itty-fetcher";
 import { sift, sort, unique } from "radash";
+import terminalLink from "terminal-link";
 import { FID, PK } from "./env";
 import { getHub } from "./hubs";
+import { getUserInfo } from "./neynar";
 import { hexToBytes } from "./utils";
 
 const hub = getHub("quilibrium");
@@ -50,7 +52,7 @@ export async function publishCast(
 	parentUrl?: string,
 	mentions: number[] = [],
 	mentionsPositions: number[] = [],
-) {
+): Promise<void> {
 	const signer = new NobleEd25519Signer(hexToBytes(PK));
 	const dataOptions = {
 		fid: FID,
@@ -63,7 +65,6 @@ export async function publishCast(
 			}
 		: undefined;
 	const type = castTypeForText(text);
-	console.log("Attempting to publish cast using @farcaster/core...");
 	const result = await makeCastAdd(
 		{
 			text,
@@ -83,7 +84,6 @@ export async function publishCast(
 		throw new Error(`Error creating message: ${result.error}`);
 	}
 
-	console.log("sending via Haatz HTTPS Hypersnap API...");
 	try {
 		const messageBytes = Buffer.from(Message.encode(result.value).finish());
 		const response = await client.post<Buffer, { hash: string } | HubError>(
@@ -91,8 +91,20 @@ export async function publishCast(
 			messageBytes,
 			HUB_POST_CONFIG,
 		);
-		console.log(isHubError(response) ? response.message : response.hash);
-		return response;
+		if (isHubError(response)) {
+			throw new Error(response.message);
+		}
+		const user = await getUserInfo(FID);
+		const username = user?.username;
+		if (!username) {
+			console.log(response.hash);
+		}
+		console.log(
+			`successfully published: ${terminalLink(
+				response.hash,
+				`https://farcaster.xyz/${username}/${response.hash.slice(0, 10)}`,
+			)}`,
+		);
 	} catch (e) {
 		console.error("Error publishing cast:", e);
 		throw e;
@@ -107,10 +119,6 @@ export async function castReact(
 	reactionType: ReactionType = ReactionType.LIKE,
 ) {
 	const signer = new NobleEd25519Signer(hexToBytes(PK));
-
-	console.log(
-		`Attempting to ${reactionType === ReactionType.LIKE ? "like" : "recast"} cast using @farcaster/core...`,
-	);
 	const dataOptions = {
 		fid: FID,
 		network: FarcasterNetwork.MAINNET,
@@ -131,7 +139,6 @@ export async function castReact(
 		throw new Error(`Error creating message: ${result.error}`);
 	}
 
-	console.log("sending via Haatz HTTPS Hypersnap API...");
 	try {
 		const messageBytes = Buffer.from(Message.encode(result.value).finish());
 		const response = await client.post<Buffer, Response>(
@@ -149,8 +156,6 @@ export async function castReact(
 
 export async function follow(targetFid: number) {
 	const signer = new NobleEd25519Signer(hexToBytes(PK));
-
-	console.log(`Attempting to follow ${targetFid} using @farcaster/core...`);
 	const dataOptions = {
 		fid: FID,
 		network: FarcasterNetwork.MAINNET,
@@ -168,7 +173,6 @@ export async function follow(targetFid: number) {
 		throw new Error(`Error creating message: ${result.error}`);
 	}
 
-	console.log("sending via Haatz HTTPS Hypersnap API...");
 	try {
 		const messageBytes = Buffer.from(Message.encode(result.value).finish());
 		const response = await client.post<Buffer, Response>(
@@ -186,8 +190,6 @@ export async function follow(targetFid: number) {
 
 export async function unfollow(targetFid: number) {
 	const signer = new NobleEd25519Signer(hexToBytes(PK));
-
-	console.log(`Attempting to unfollow ${targetFid} using @farcaster/core...`);
 	const dataOptions = {
 		fid: FID,
 		network: FarcasterNetwork.MAINNET,
@@ -205,7 +207,6 @@ export async function unfollow(targetFid: number) {
 		throw new Error(`Error creating message: ${result.error}`);
 	}
 
-	console.log("sending via Haatz HTTPS Hypersnap API...");
 	try {
 		const messageBytes = Buffer.from(Message.encode(result.value).finish());
 		const response = await client.post<Buffer, Response>(
@@ -273,7 +274,6 @@ export async function deleteCast(hash: `0x${string}`) {
 		throw new Error(`Error creating message: ${result.error}`);
 	}
 
-	console.log("sending via Haatz HTTPS Hypersnap API...");
 	try {
 		const messageBytes = Buffer.from(Message.encode(result.value).finish());
 		const response = await client.post<Buffer, Response>(
