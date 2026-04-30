@@ -86,12 +86,12 @@ export async function publishCast(
 	console.log("sending via Haatz HTTPS Hypersnap API...");
 	try {
 		const messageBytes = Buffer.from(Message.encode(result.value).finish());
-		const response = await client.post<Buffer, Response>(
+		const response = await client.post<Buffer, { hash: string } | HubError>(
 			"/v1/submitMessage",
 			messageBytes,
 			HUB_POST_CONFIG,
 		);
-		console.log("Cast published successfully");
+		console.log(isHubError(response) ? response.message : response.hash);
 		return response;
 	} catch (e) {
 		console.error("Error publishing cast:", e);

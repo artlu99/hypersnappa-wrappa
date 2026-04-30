@@ -36,12 +36,13 @@ program.name("hyper").description("Hypersnap CLI").version("0.1.0");
 program
 	.command("ls")
 	.description("List most recent casts+replies")
-	.argument("<user>", "user to list casts for")
-	.action(async (user) => {
-		const fid = await getFidFromUsername(user);
+	.argument("[user]", "user to list casts for")
+	.option("-n, --limit <limit>", "Limit the number of casts to list", "10")
+	.action(async (user, options) => {
+		const fid = user ? await getFidFromUsername(user) : Number(process.env.FID);
 		invariant(fid, `User not found: ${user}`);
 
-		const casts = await getCasts(fid, true, 10);
+		const casts = await getCasts(fid, true, Number(options.limit ?? 10));
 		console.log(
 			casts
 				.map(
