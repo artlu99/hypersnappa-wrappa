@@ -3,6 +3,7 @@
 import tab from "@bomb.sh/tab/commander";
 import { Command } from "commander";
 import { sort } from "radash";
+import terminalLink from "terminal-link";
 import invariant from "tiny-invariant";
 import { base } from "viem/chains";
 import { getTimestamp, getTimestampFromFarcasterTimestamp } from "./src/hubs";
@@ -31,6 +32,15 @@ import { wrappa } from "./src/wrappa";
 
 const program = new Command();
 
+const castLink = (username: string | undefined, hash: string) => {
+	const shortHash = `${hash.startsWith("0x") ? "" : "0x"}${hash}`.slice(0, 10);
+	return username
+		? terminalLink(`[${shortHash}]`, `https://farcaster.xyz/${username}/${shortHash}`, {
+				fallback: false,
+			})
+		: `[${shortHash}]`;
+};
+
 program.name("hyper").description("Hypersnap CLI").version("0.1.0");
 
 program
@@ -43,11 +53,12 @@ program
 		invariant(fid, `User not found: ${user}`);
 
 		const casts = await getCasts(fid, true, Number(options.limit ?? 10));
+		const username = user ?? (await getUserInfo(fid))?.username;
 		console.log(
 			casts
 				.map(
 					(c) =>
-						`${getTimestamp(getTimestampFromFarcasterTimestamp(c.timestamp ?? 0))} ${c.text.slice(0, 70)} [${c.hash.slice(0, 10)}]`,
+						`${getTimestamp(getTimestampFromFarcasterTimestamp(c.timestamp ?? 0))} ${c.text.slice(0, 70)} ${castLink(username, c.hash)}`,
 				)
 				.join("\n"),
 		);
@@ -65,7 +76,7 @@ program
 			[casts.conversation.cast]
 				?.map(
 					(c) =>
-						`${c.timestamp} ${c.text.slice(0, 70)} [${c.hash.slice(0, 10)}]`,
+						`${c.timestamp} ${c.text.slice(0, 70)} ${castLink(c.author.username, c.hash)}`,
 				)
 				.join("\n"),
 		);
@@ -73,7 +84,7 @@ program
 			casts.conversation.cast.direct_replies
 				.map(
 					(c) =>
-						`${c.timestamp} ${c.text.slice(0, 70)} [${c.hash.slice(0, 10)}]`,
+						`${c.timestamp} ${c.text.slice(0, 70)} ${castLink(c.author.username, c.hash)}`,
 				)
 				.join("\n"),
 		);
