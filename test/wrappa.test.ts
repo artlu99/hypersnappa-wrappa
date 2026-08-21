@@ -5,7 +5,7 @@ import { createWrappa, type WrappaDeps } from "../src/wrappa";
 const makeDeps = (overrides?: Partial<WrappaDeps>): WrappaDeps => {
 	return {
 		castReact: async () => new Response(),
-		publishCast: async () => new Response(),
+		publishCast: async () => {},
 		lookupCastByHashOrWarpcastUrl: async () =>
 			({
 				cast: {
@@ -54,7 +54,7 @@ describe("wrappa orchestration", () => {
 					embedCalls++;
 					return { url: "https://example.com" } as any;
 				},
-				publishCast: async () => new Response(),
+				publishCast: async () => {},
 			}),
 		);
 		await wrappa({
