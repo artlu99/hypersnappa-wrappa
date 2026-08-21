@@ -3,7 +3,6 @@
 import tab from "@bomb.sh/tab/commander";
 import { Command } from "commander";
 import { sort } from "radash";
-import terminalLink from "terminal-link";
 import invariant from "tiny-invariant";
 import { base } from "viem/chains";
 import { getTimestamp, getTimestampFromFarcasterTimestamp } from "./src/hubs";
@@ -27,19 +26,15 @@ import { getTokenPrice } from "./src/oracle";
 import { getBalance, getTokenBalance } from "./src/rpc";
 import { urlToCastHash } from "./src/shim";
 import { getToken } from "./src/tokens";
-import { firstNUnique, readAllStdin, shortenAddress } from "./src/utils";
+import {
+	castLink,
+	firstNUnique,
+	readAllStdin,
+	shortenAddress,
+} from "./src/utils";
 import { wrappa } from "./src/wrappa";
 
 const program = new Command();
-
-const castLink = (username: string | undefined, hash: string) => {
-	const shortHash = `${hash.startsWith("0x") ? "" : "0x"}${hash}`.slice(0, 10);
-	return username
-		? terminalLink(`[${shortHash}]`, `https://farcaster.xyz/${username}/${shortHash}`, {
-				fallback: false,
-			})
-		: `[${shortHash}]`;
-};
 
 program.name("hyper").description("Hypersnap CLI").version("0.1.0");
 

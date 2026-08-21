@@ -1,3 +1,5 @@
+import ansiEscapes from "ansi-escapes";
+
 export const firstNUnique = <T, K>(xs: T[], key: (x: T) => K, n: number) => {
 	const seen = new Set<K>();
 	const out: T[] = [];
@@ -53,6 +55,19 @@ export const hexToBytes = (hex_: `0x${string}`): Uint8Array => {
 
 export const shortenAddress = (address: string) => {
 	return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
+export const castLink = (
+	username: string | undefined,
+	hash: string,
+	isTTY: boolean = process.stdout.isTTY ?? false,
+) => {
+	const shortHash = `${hash.startsWith("0x") ? "" : "0x"}${hash}`.slice(0, 10);
+	if (!username || !isTTY) return `[${shortHash}]`;
+	return ansiEscapes.link(
+		`[${shortHash}]`,
+		`https://farcaster.xyz/${username}/${shortHash}`,
+	);
 };
 
 export const readAllStdin = async (): Promise<string> => {

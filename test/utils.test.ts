@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { firstNUnique, hexToBytes, shortenAddress } from "../src/utils";
+import { castLink, firstNUnique, hexToBytes, shortenAddress } from "../src/utils";
+
+const FULL_HASH = "0x38090173b9a1c2d3e4f5a6b7c8d9e0f1a2b3c4d5";
 
 describe("firstNUnique", () => {
 	test("empty array returns empty", () => {
@@ -88,5 +90,47 @@ describe("shortenAddress", () => {
 
 	test("works on a 10-char string", () => {
 		expect(shortenAddress("0x1234AB")).toBe("0x1234...34AB");
+	});
+});
+
+describe("castLink", () => {
+	test("non-TTY returns plain short hash in brackets", () => {
+		expect(castLink("decent-artlu", FULL_HASH, false)).toBe("[0x38090173]");
+	});
+
+	test("TTY wraps short hash in OSC 8 hyperlink", () => {
+		expect(castLink("decent-artlu", FULL_HASH, true)).toBe(
+			"\u001B]8;;https://farcaster.xyz/decent-artlu/0x38090173\u0007[0x38090173]\u001B]8;;\u0007",
+		);
+	});
+
+	test("hash without 0x prefix is normalized (neynar)", () => {
+		expect(castLink("decent-artlu", FULL_HASH.slice(2), true)).toBe(
+			"\u001B]8;;https://farcaster.xyz/decent-artlu/0x38090173\u0007[0x38090173]\u001B]8;;\u0007",
+		);
+	});
+
+	test("undefined username returns plain text even in TTY", () => {
+		expect(castLink(undefined, FULL_HASH, true)).toBe("[0x38090173]");
+	});
+
+	test("defaults to process.stdout.isTTY", () => {
+		const descriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
+		const setTTY = (value: boolean | undefined) =>
+			Object.defineProperty(process.stdout, "isTTY", {
+				value,
+				configurable: true,
+			});
+		try {
+			setTTY(false);
+			expect(castLink("decent-artlu", FULL_HASH)).toBe("[0x38090173]");
+			setTTY(true);
+			expect(castLink("decent-artlu", FULL_HASH)).toBe(
+				"\u001B]8;;https://farcaster.xyz/decent-artlu/0x38090173\u0007[0x38090173]\u001B]8;;\u0007",
+			);
+		} finally {
+			if (descriptor) Object.defineProperty(process.stdout, "isTTY", descriptor);
+			else delete (process.stdout as { isTTY?: boolean }).isTTY;
+		}
 	});
 });
