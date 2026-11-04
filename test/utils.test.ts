@@ -94,20 +94,19 @@ describe("shortenAddress", () => {
 });
 
 describe("castLink", () => {
+	const TTY_LINK =
+		"\u001B]8;;https://farcaster.xyz/decent-artlu/0x38090173\u0007[0x38090173]\u001B]8;;\u0007 \u001B]8;;https://forkcaster.xyz/decent-artlu/0x38090173\u0007[fork]\u001B]8;;\u0007";
+
 	test("non-TTY returns plain short hash in brackets", () => {
 		expect(castLink("decent-artlu", FULL_HASH, false)).toBe("[0x38090173]");
 	});
 
-	test("TTY wraps short hash in OSC 8 hyperlink", () => {
-		expect(castLink("decent-artlu", FULL_HASH, true)).toBe(
-			"\u001B]8;;https://farcaster.xyz/decent-artlu/0x38090173\u0007[0x38090173]\u001B]8;;\u0007",
-		);
+	test("TTY wraps short hash in OSC 8 hyperlink followed by fork link", () => {
+		expect(castLink("decent-artlu", FULL_HASH, true)).toBe(TTY_LINK);
 	});
 
 	test("hash without 0x prefix is normalized (neynar)", () => {
-		expect(castLink("decent-artlu", FULL_HASH.slice(2), true)).toBe(
-			"\u001B]8;;https://farcaster.xyz/decent-artlu/0x38090173\u0007[0x38090173]\u001B]8;;\u0007",
-		);
+		expect(castLink("decent-artlu", FULL_HASH.slice(2), true)).toBe(TTY_LINK);
 	});
 
 	test("undefined username returns plain text even in TTY", () => {
@@ -125,9 +124,7 @@ describe("castLink", () => {
 			setTTY(false);
 			expect(castLink("decent-artlu", FULL_HASH)).toBe("[0x38090173]");
 			setTTY(true);
-			expect(castLink("decent-artlu", FULL_HASH)).toBe(
-				"\u001B]8;;https://farcaster.xyz/decent-artlu/0x38090173\u0007[0x38090173]\u001B]8;;\u0007",
-			);
+			expect(castLink("decent-artlu", FULL_HASH)).toBe(TTY_LINK);
 		} finally {
 			if (descriptor) Object.defineProperty(process.stdout, "isTTY", descriptor);
 			else delete (process.stdout as { isTTY?: boolean }).isTTY;

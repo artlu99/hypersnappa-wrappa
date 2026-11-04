@@ -64,10 +64,13 @@ export const castLink = (
 ) => {
 	const shortHash = `${hash.startsWith("0x") ? "" : "0x"}${hash}`.slice(0, 10);
 	if (!username || !isTTY) return `[${shortHash}]`;
-	return ansiEscapes.link(
+	return `${ansiEscapes.link(
 		`[${shortHash}]`,
 		`https://farcaster.xyz/${username}/${shortHash}`,
-	);
+	)} ${ansiEscapes.link(
+		"[fork]",
+		`https://forkcaster.xyz/${username}/${shortHash}`,
+	)}`;
 };
 
 export const readAllStdin = async (): Promise<string> => {
